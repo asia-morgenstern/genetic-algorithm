@@ -320,8 +320,8 @@ def main():
     print(f"Number of Runs:  {N_runs}")
     print(f"Total Number of Generations:  {tot_gen}")
     print(f"Average Number of Generations:  {avg_gen:.3F}")
-    print(f"Min Number of Generations:  {min_gen}")
-    print(f"Max Number of Generations:  {max_gen}")
+    print(f"Minimum Number of Generations:  {min_gen}")
+    print(f"Maximum Number of Generations:  {max_gen}")
 
 if __name__ == "__main__": 
     main()
