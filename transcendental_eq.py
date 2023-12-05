@@ -180,7 +180,7 @@ def bin_to_float(bin_rep):
     
     return ft_num
 
-def main():
+def genetic_algorithm():
     global POPULATION_SIZE
     
     # initial population
@@ -199,7 +199,7 @@ def main():
         # sort population on fitness score in ascending order
         
         population = sorted(population, key=lambda x : x.fitness)
-        print_individual(population[0], curr_gen)
+        #print_individual(population[0], curr_gen)
         
         # algorithm converges if lowest fitness is less than epsilon
         
@@ -232,6 +232,37 @@ def main():
         
         population = new_generation
         curr_gen += 1
+        
+    return curr_gen
 
+def main():
+    N_runs = 1000
+    
+    # statistical quantities
+    
+    gen = genetic_algorithm()
+    
+    tot_gen = gen
+    min_gen = gen
+    max_gen = gen
+    
+    for i in range(1, N_runs):
+        gen = genetic_algorithm()
+        
+        tot_gen += gen
+        
+        min_gen = gen if gen < min_gen else min_gen
+        max_gen = gen if gen > max_gen else max_gen
+    
+    # output statistics
+    
+    avg_gen = tot_gen/N_runs
+    
+    print(f"Number of Runs:  {N_runs}")
+    print(f"Total Number of Generations:  {tot_gen}")
+    print(f"Average Number of Generations:  {avg_gen:.3F}")
+    print(f"Min Number of Generations:  {min_gen}")
+    print(f"Max Number of Generations:  {max_gen}")
+    
 if __name__ == "__main__": 
     main()
