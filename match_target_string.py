@@ -34,7 +34,6 @@ class Individual(list):
         
         chromosome = []
         for i in range(len(TARGET)):
-
             gene = random.choice(GENES)
             chromosome.append(gene)
     
