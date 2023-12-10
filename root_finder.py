@@ -279,11 +279,11 @@ def genetic_algorithm():
         # generate remaining children using top 50% of old generation
         
         top_percent = 0.5
-        top = int(top_percent*POPULATION_SIZE)
+        n_top = int(top_percent*POPULATION_SIZE)
         
         for i in range(POPULATION_SIZE - n_elite):
-            parent1 = random.choice(population[:top])
-            parent2 = random.choice(population[:top])
+            parent1 = random.choice(population[:n_top])
+            parent2 = random.choice(population[:n_top])
             child = parent1.mate(parent2)
             new_generation.append(child)
             
