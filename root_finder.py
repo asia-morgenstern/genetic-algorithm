@@ -36,6 +36,15 @@ class Individual(object):
         
         self.chromosome = chromosome
         self.fitness = self.calc_fitness()
+        
+    def __str__(self):
+        """ __str__ - what to print """
+        
+        curr_str = "".join(self.chromosome)
+        curr_val = bin_to_float(curr_str)
+        curr_fit = self.fitness
+        
+        return f"String:  {curr_str}  Val:  {curr_val}  Fitness:  {curr_fit}"
     
     def gen_chromosome():
         """ gen_chromosome - generates a chromosome
@@ -145,11 +154,8 @@ def print_individual(indiv, gen):
     """ print_individual - prints generation, Individual with lowest fitness, float val, and fitness
     """
     
-    curr_str = "".join(indiv.chromosome)
-    curr_val = bin_to_float(curr_str)
-    curr_fit = indiv.fitness
-    print(f"Generation {gen}  String:  {curr_str}  ", end="")
-    print(f"Val:  {curr_val}  Fitness:  {curr_fit}")
+    print(f"Generation {gen}  ", end="")
+    print(indiv)
 
 def float_to_bin(n, precision):
     """ float_to_bin - converts ints and floats to binary strings
@@ -165,6 +171,12 @@ def float_to_bin(n, precision):
     
     if type(n) is not float:
         n = float(n)
+        
+    # determine sign of n
+    
+    sign = 0
+    if n < 0:
+        sign = 1
         
     # split float into whole number and decimal strings
     
@@ -199,7 +211,53 @@ def float_to_bin(n, precision):
         
         if decimal >= 1:                            # subtract if decimal >= 1
             decimal -= 1
+            
+    bin_rep = to_std_not(bin_rep, sign)
 
+    return bin_rep
+
+def to_std_not(bin_rep, sign):
+    """ to_std_not - converts a binary string to base-2 standard notation
+    
+    bin_rep - binary string
+    sign - sign of bin_rep
+         - 0 is non-negative, 1 is negative
+    """
+    
+    # determine number of places to move decimal
+    
+    d_loc = bin_rep.find(".")                       # get index of decimal
+    i_loc = bin_rep.find("1")                       # get index of first 1
+    
+    diff = d_loc - i_loc + 1
+    
+    # determine exponent
+    
+    exp = diff + 127
+    exp = str(bin(exp))                             # convert int to binary string
+    bin_rep_exp = exp[2:]                           # strip off "0x"
+    
+    while len(bin_rep_exp) < 8:                     # pad front with 0's
+        bin_rep_exp = "0" + bin_rep_exp
+    
+    # remove leading 1 and decimal point
+    
+    whole, decimal = bin_rep.split(".")             # split into whole and decimal strings
+    
+    if i_loc < d_loc:                               # leading 1 before decimal
+        bin_rep_mant = whole[i_loc + 1:] + decimal
+    else:                                           # leading 1 after decimal
+        bin_rep_mant = decimal[i_loc + 1:]
+    
+    # determine mantissa
+    
+    while len(bin_rep_mant) < 23:                   # pad end with 0's
+        bin_rep_mant += "0"
+    
+    # store in bits as sign, exp, mantissa
+    
+    bin_rep = str(sign) + bin_rep_exp + bin_rep_mant
+    
     return bin_rep
 
 def bin_to_float(bin_rep):
@@ -213,31 +271,38 @@ def bin_to_float(bin_rep):
     
     if type(bin_rep) is list:
         bin_rep = "".join(bin_rep)
+        
+    # determine sign, exp, mantissa bits
     
-    # split string into whole number and decimal strings
+    s = bin_rep[0]
+    c = bin_rep[1:9]
+    m = bin_rep[9:]
     
-    whole, decimal = bin_rep.split(".")
+    # convert bits to base 10
     
-    # calculate float equivalent from binary whole
+    s = int(s)
     
-    ft_num = 0.0
+    c = 0
     exponent = 0
-    for i in range(len(whole) - 1, -1, -1):         # iterate backwards through string
-        multiplier = int(whole[i])                  # determine multiplier, 0 or 1
-        ft_num += multiplier*2**exponent            # multiply by 2^n, n = exponent
+    for i in range(len(c) - 1, -1, -1):             # iterate backwards through string
+        multiplier = int(c[i])                      # determine multiplier, 0 or 1
+        c += multiplier*2**exponent                 # multiply by 2^n, n = exponent
         
         exponent += 1
     
-    # calculate float equivalent from binary decimal portion
-    
-    exponent = -1
-    for i in range(0, len(decimal), 1):             # iterate forwards through string
-        multiplier = int(decimal[i])                # determine multiplier, 0 or 1
-        ft_num += multiplier*2**exponent            # multiply by 2^n, n = exponent
+    m = 0.0
+    exponent = 0
+    for i in range(len(m) - 1, -1, -1):             # iterate backwards through string
+        multiplier = int(m[i])                      # determine multiplier, 0 or 1
+        m += multiplier*2**exponent                 # multiply by 2^n, n = exponent
         
-        exponent -= 1
+        exponent += 1
+        
+    # calculate value
     
-    return ft_num
+    val = (-1)**s * 2**(c - 127) ** (1 + m)
+    
+    return val
 
 def genetic_algorithm():
     global POPULATION_SIZE
@@ -295,7 +360,7 @@ def genetic_algorithm():
     return curr_gen
 
 def main():
-    N_runs = 1000
+    N_runs = 1
     
     # statistical quantities
     
