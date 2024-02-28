@@ -94,10 +94,14 @@ class Individual(object):
         
         max_str = float_to_bin(MAX_VAL, PRECISION)
         min_str = float_to_bin(MIN_VAL, PRECISION)
+        
+        max_str_sign = max_str[0]
+        min_str_sign = min_str[0]
             
         i = 0
         check_max = True
         check_min = True
+        is_negative = True if max_str_sign == 1 else False
         
         # create a child chromosome
         
@@ -118,19 +122,42 @@ class Individual(object):
                 gene = p2_gene
             else:
                 gene = self.mutated_gene()
+                
+            # check sign bit
             
-            # check if gene is in range
+            if i == 0 and is_negative:
+                i += 1
+                gene = max_str_sign
+                continue
+            #elif max_str_sign < min_str_sign:
+            #    pass
             
-            if check_max:
+            # check if gene is in range (positive)
+            
+            if check_max and not is_negative:
                 if gene < max_str[i]:               # gene within max range
                     check_max = not check_max       # max no longer needs checked
                 if gene > max_str[i]:               # gene out of range
                     gene = max_str[i]               # set gene to max_str bit
             
-            if check_min:
+            if check_min and not is_negative:
                 if gene > min_str[i]:               # gene within min range
                     check_min = not check_min       # min no longer needs checked
                 if gene < min_str[i]:               # gene out of range
+                    gene = min_str[i]               # set gene to min_str bit
+                    
+            # check if gene is in range (negative)
+            
+            if check_max and is_negative:
+                if gene > max_str[i]:               # gene within max range
+                    check_max = not check_max       # max no longer needs checked
+                if gene < max_str[i]:               # gene out of range
+                    gene = max_str[i]               # set gene to max_str bit
+            
+            if check_min and is_negative:
+                if gene < min_str[i]:               # gene within min range
+                    check_min = not check_min       # min no longer needs checked
+                if gene > min_str[i]:               # gene out of range
                     gene = min_str[i]               # set gene to min_str bit
             
             i += 1
@@ -282,26 +309,39 @@ def bin_to_float(bin_rep):
     
     s = int(s)
     
-    c = 0
-    exponent = 0
-    for i in range(len(c) - 1, -1, -1):             # iterate backwards through string
-        multiplier = int(c[i])                      # determine multiplier, 0 or 1
-        c += multiplier*2**exponent                 # multiply by 2^n, n = exponent
-        
-        exponent += 1
+    c = to_float(c, True)
     
-    m = 0.0
-    exponent = 0
-    for i in range(len(m) - 1, -1, -1):             # iterate backwards through string
-        multiplier = int(m[i])                      # determine multiplier, 0 or 1
-        m += multiplier*2**exponent                 # multiply by 2^n, n = exponent
-        
-        exponent += 1
+    m = to_float(m, False)
         
     # calculate value
     
-    val = (-1)**s * 2**(c - 127) ** (1 + m)
+    val = (-1)**s * 2**(c - 127) * (1 + m)
     
+    return val
+
+def to_float(bin_rep, is_Whole):
+    val = 0.0
+    
+    exponent = -1
+    start = 0
+    stop = len(bin_rep)
+    skip = 1
+    
+    if is_Whole:
+        exponent = 0
+        start = len(bin_rep) - 1
+        stop = -1
+        skip = -1 
+        
+    for i in range(start, stop, skip):              # iterate through string
+        multiplier = int(bin_rep[i])                # determine multiplier, 0 or 1
+        val += multiplier*2**exponent               # multiply by 2^n, n = exponent
+        
+        exponent -= skip 
+    
+    if is_Whole:
+        val = int(val)
+        
     return val
 
 def genetic_algorithm():
@@ -323,7 +363,7 @@ def genetic_algorithm():
         # sort population on fitness score in ascending order
         
         population = sorted(population, key=lambda x : x.fitness)
-        #print_individual(population[0], curr_gen)
+        print_individual(population[0], curr_gen)
         
         # algorithm converges if lowest fitness is less than epsilon
         
