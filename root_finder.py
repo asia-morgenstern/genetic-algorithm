@@ -1,18 +1,18 @@
 """ root_finder - genetic algorithm that find roots of polynomial like equations
 
 Asia Morgenstern
-22 November 2023
+8 March 2024
 """
 
 import random
-import math
+import numpy as np
 
 # define global constants
 
 POPULATION_SIZE = 100
 
-MAX_VAL = 21                                        # function dependent min and max val
-MIN_VAL = 11
+MAX_VAL = 0                                        # function dependent min and max val
+MIN_VAL = -2
 
 PRECISION = 10
 
@@ -24,9 +24,10 @@ def f(x):
     """
     
     #return (x - 10)**3 - 1
-    #return (x - 10)**3 - math.cos(x) - 1
-    #return (x - 10)**3 - math.cos(x) + 4*x
-    return (x - 10)**3 - math.cos(x) + math.sin(x)
+    #return (x - 10)**3 - np.cos(x) - 1
+    #return (x - 10)**3 - np.cos(x) + 4*x
+    #return (x - 10)**3 - np.cos(x) + np.sin(x)
+    return x**2 - 1
 
 class Individual(object):    
     def __init__(self, chromosome):
@@ -256,7 +257,9 @@ def to_std_not(bin_rep, sign):
     d_loc = bin_rep.find(".")                       # get index of decimal
     i_loc = bin_rep.find("1")                       # get index of first 1
     
-    diff = d_loc - i_loc + 1
+    diff = d_loc - i_loc - 1
+    if d_loc < i_loc:
+        diff = d_loc - i_loc
     
     # determine exponent
     
@@ -274,7 +277,7 @@ def to_std_not(bin_rep, sign):
     if i_loc < d_loc:                               # leading 1 before decimal
         bin_rep_mant = whole[i_loc + 1:] + decimal
     else:                                           # leading 1 after decimal
-        bin_rep_mant = decimal[i_loc + 1:]
+        bin_rep_mant = bin_rep[i_loc + 1:]
     
     # determine mantissa
     
@@ -397,6 +400,8 @@ def genetic_algorithm():
         population = new_generation
         curr_gen += 1
     
+    #print_individual(population[0], curr_gen)
+        
     return curr_gen
 
 def main():

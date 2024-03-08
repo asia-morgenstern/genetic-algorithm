@@ -1,21 +1,22 @@
-""" root_finder_v1 - genetic algorithm that find roots of polynomial like equations
+""" root_finder_v2 - genetic algorithm that find roots of polynomial like equations
 
 Restrictions:
- - Bounded to only positive roots
+ - Can find both positive and negative roots
+ - Has issues with converging for certain functions
 
 Asia Morgenstern
-22 November 2023
+4 March 2024
 """
 
 import random
-import math
+import numpy as np
 
 # define global constants
 
 POPULATION_SIZE = 100
 
 MAX_VAL = 0                                        # function dependent min and max val
-MIN_VAL = 2
+MIN_VAL = -2
 
 PRECISION = 10
 
@@ -27,9 +28,9 @@ def f(x):
     """
     
     #return (x - 10)**3 - 1
-    #return (x - 10)**3 - math.cos(x) - 1
-    #return (x - 10)**3 - math.cos(x) + 4*x
-    #return (x - 10)**3 - math.cos(x) + math.sin(x)
+    #return (x - 10)**3 - np.cos(x) - 1
+    #return (x - 10)**3 - np.cos(x) + 4*x
+    #return (x - 10)**3 - np.cos(x) + np.sin(x)
     return x**2 - 1
 
 class Individual(object):    
@@ -40,6 +41,15 @@ class Individual(object):
         
         self.chromosome = chromosome
         self.fitness = self.calc_fitness()
+        
+    def __str__(self):
+        """ __str__ - what to print """
+        
+        curr_str = "".join(self.chromosome)
+        curr_val = bin_to_float(curr_str)
+        curr_fit = self.fitness
+        
+        return f"String:  {curr_str}  Val:  {curr_val}  Fitness:  {curr_fit}"
     
     def gen_chromosome():
         """ gen_chromosome - generates a chromosome
@@ -89,10 +99,14 @@ class Individual(object):
         
         max_str = float_to_bin(MAX_VAL, PRECISION)
         min_str = float_to_bin(MIN_VAL, PRECISION)
+        
+        max_str_sign = max_str[0]
+        min_str_sign = min_str[0]
             
         i = 0
         check_max = True
         check_min = True
+        is_negative = True if max_str_sign == 1 else False
         
         # create a child chromosome
         
@@ -113,19 +127,42 @@ class Individual(object):
                 gene = p2_gene
             else:
                 gene = self.mutated_gene()
+                
+            # check sign bit
             
-            # check if gene is in range
+            if i == 0 and is_negative:
+                i += 1
+                gene = max_str_sign
+                continue
+            #elif max_str_sign < min_str_sign:
+            #    pass
             
-            if check_max:
+            # check if gene is in range (positive)
+            
+            if check_max and not is_negative:
                 if gene < max_str[i]:               # gene within max range
                     check_max = not check_max       # max no longer needs checked
                 if gene > max_str[i]:               # gene out of range
                     gene = max_str[i]               # set gene to max_str bit
             
-            if check_min:
+            if check_min and not is_negative:
                 if gene > min_str[i]:               # gene within min range
                     check_min = not check_min       # min no longer needs checked
                 if gene < min_str[i]:               # gene out of range
+                    gene = min_str[i]               # set gene to min_str bit
+                    
+            # check if gene is in range (negative)
+            
+            if check_max and is_negative:
+                if gene > max_str[i]:               # gene within max range
+                    check_max = not check_max       # max no longer needs checked
+                if gene < max_str[i]:               # gene out of range
+                    gene = max_str[i]               # set gene to max_str bit
+            
+            if check_min and is_negative:
+                if gene < min_str[i]:               # gene within min range
+                    check_min = not check_min       # min no longer needs checked
+                if gene > min_str[i]:               # gene out of range
                     gene = min_str[i]               # set gene to min_str bit
             
             i += 1
@@ -149,11 +186,8 @@ def print_individual(indiv, gen):
     """ print_individual - prints generation, Individual with lowest fitness, float val, and fitness
     """
     
-    curr_str = "".join(indiv.chromosome)
-    curr_val = bin_to_float(curr_str)
-    curr_fit = indiv.fitness
-    print(f"Generation {gen}  String:  {curr_str}  ", end="")
-    print(f"Val:  {curr_val}  Fitness:  {curr_fit}")
+    print(f"Generation {gen}  ", end="")
+    print(indiv)
 
 def float_to_bin(n, precision):
     """ float_to_bin - converts ints and floats to binary strings
@@ -169,6 +203,12 @@ def float_to_bin(n, precision):
     
     if type(n) is not float:
         n = float(n)
+        
+    # determine sign of n
+    
+    sign = 0
+    if n < 0:
+        sign = 1
         
     # split float into whole number and decimal strings
     
@@ -203,7 +243,55 @@ def float_to_bin(n, precision):
         
         if decimal >= 1:                            # subtract if decimal >= 1
             decimal -= 1
+            
+    bin_rep = to_std_not(bin_rep, sign)
 
+    return bin_rep
+
+def to_std_not(bin_rep, sign):
+    """ to_std_not - converts a binary string to base-2 standard notation
+    
+    bin_rep - binary string
+    sign - sign of bin_rep
+         - 0 is non-negative, 1 is negative
+    """
+    
+    # determine number of places to move decimal
+    
+    d_loc = bin_rep.find(".")                       # get index of decimal
+    i_loc = bin_rep.find("1")                       # get index of first 1
+    
+    diff = d_loc - i_loc - 1
+    if d_loc < i_loc:
+        diff = d_loc - i_loc
+    
+    # determine exponent
+    
+    exp = diff + 127
+    exp = str(bin(exp))                             # convert int to binary string
+    bin_rep_exp = exp[2:]                           # strip off "0x"
+    
+    while len(bin_rep_exp) < 8:                     # pad front with 0's
+        bin_rep_exp = "0" + bin_rep_exp
+    
+    # remove leading 1 and decimal point
+    
+    whole, decimal = bin_rep.split(".")             # split into whole and decimal strings
+    
+    if i_loc < d_loc:                               # leading 1 before decimal
+        bin_rep_mant = whole[i_loc + 1:] + decimal
+    else:                                           # leading 1 after decimal
+        bin_rep_mant = bin_rep[i_loc + 1:]
+    
+    # determine mantissa
+    
+    while len(bin_rep_mant) < 23:                   # pad end with 0's
+        bin_rep_mant += "0"
+    
+    # store in bits as sign, exp, mantissa
+    
+    bin_rep = str(sign) + bin_rep_exp + bin_rep_mant
+    
     return bin_rep
 
 def bin_to_float(bin_rep):
@@ -217,31 +305,51 @@ def bin_to_float(bin_rep):
     
     if type(bin_rep) is list:
         bin_rep = "".join(bin_rep)
-    
-    # split string into whole number and decimal strings
-    
-    whole, decimal = bin_rep.split(".")
-    
-    # calculate float equivalent from binary whole
-    
-    ft_num = 0.0
-    exponent = 0
-    for i in range(len(whole) - 1, -1, -1):         # iterate backwards through string
-        multiplier = int(whole[i])                  # determine multiplier, 0 or 1
-        ft_num += multiplier*2**exponent            # multiply by 2^n, n = exponent
         
-        exponent += 1
+    # determine sign, exp, mantissa bits
     
-    # calculate float equivalent from binary decimal portion
+    s = bin_rep[0]
+    c = bin_rep[1:9]
+    m = bin_rep[9:]
+    
+    # convert bits to base 10
+    
+    s = int(s)
+    
+    c = to_float(c, True)
+    
+    m = to_float(m, False)
+        
+    # calculate value
+    
+    val = (-1)**s * 2**(c - 127) * (1 + m)
+    
+    return val
+
+def to_float(bin_rep, is_Whole):
+    val = 0.0
     
     exponent = -1
-    for i in range(0, len(decimal), 1):             # iterate forwards through string
-        multiplier = int(decimal[i])                # determine multiplier, 0 or 1
-        ft_num += multiplier*2**exponent            # multiply by 2^n, n = exponent
-        
-        exponent -= 1
+    start = 0
+    stop = len(bin_rep)
+    skip = 1
     
-    return ft_num
+    if is_Whole:
+        exponent = 0
+        start = len(bin_rep) - 1
+        stop = -1
+        skip = -1 
+        
+    for i in range(start, stop, skip):              # iterate through string
+        multiplier = int(bin_rep[i])                # determine multiplier, 0 or 1
+        val += multiplier*2**exponent               # multiply by 2^n, n = exponent
+        
+        exponent -= skip 
+    
+    if is_Whole:
+        val = int(val)
+        
+    return val
 
 def genetic_algorithm():
     global POPULATION_SIZE
@@ -297,7 +405,7 @@ def genetic_algorithm():
         curr_gen += 1
     
     #print_individual(population[0], curr_gen)
-    
+        
     return curr_gen
 
 def main():
