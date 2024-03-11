@@ -4,15 +4,14 @@ Asia Morgenstern
 8 March 2024
 """
 
-import random
 import numpy as np
 
 # define global constants
 
 POPULATION_SIZE = 100
 
-MAX_VAL = 0                                        # function dependent min and max val
-MIN_VAL = -2
+MAX_VAL = 15                                        # function dependent min and max val
+MIN_VAL = 0
 
 PRECISION = 10
 
@@ -23,11 +22,11 @@ def f(x):
     x - x value
     """
     
-    #return (x - 10)**3 - 1
+    return (x - 10)**3 - 1
     #return (x - 10)**3 - np.cos(x) - 1
     #return (x - 10)**3 - np.cos(x) + 4*x
     #return (x - 10)**3 - np.cos(x) + np.sin(x)
-    return x**2 - 1
+    #return x**2 - 1
 
 class Individual(object):    
     def __init__(self, chromosome):
@@ -56,7 +55,7 @@ class Individual(object):
         global MIN_VAL
         global PRECISION
         
-        n = random.random()*(MAX_VAL - MIN_VAL) + MIN_VAL   # random float [MIN_VAL, MAX_VAL)
+        n = np.random.rand()*(MAX_VAL - MIN_VAL) + MIN_VAL   # random float [MIN_VAL, MAX_VAL)
         n = float_to_bin(n, PRECISION)              # convert float to binary string
         
         chromosome = list(n)                        # convert string to list
@@ -108,9 +107,14 @@ class Individual(object):
         
         child_chromosome = []        
         for p1_gene, p2_gene in zip(self.chromosome, parent2.chromosome):
-            r = random.random()
+            r = np.random.rand()
             
             # choose gene
+            
+            #if i == 0 and p1_gene == p2_gene:       # p1 and p2 have same sign
+            #    child_chromosome.append(p1_gene)
+            #    i += 1 
+            #    continue
             
             if p1_gene == ".":                      # add decimal point
                 child_chromosome.append(p1_gene)
@@ -172,7 +176,7 @@ class Individual(object):
                          - returns either 0 or 1
         """
         
-        r = random.randint(0, 1)
+        r = np.random.randint(0, 2)
         
         gene = str(r)
         
@@ -194,6 +198,7 @@ def float_to_bin(n, precision):
     """
     
     global MAX_VAL
+    global MIN_VAL
     
     # convert int to float
     
@@ -213,18 +218,22 @@ def float_to_bin(n, precision):
     
     # convert whole number to binary
 
-    whole = int(whole)                              # convert string to int
+    whole = np.abs(int(whole))                      # convert string to int
     whole = str(bin(whole))                         # convert int to binary string
     bin_rep = whole[2:]                             # strip off "0x"
     
-    # ensure int portion of bin_rep is same length as int portion of MAX_VAL
+    # ensure int portion of bin_rep is same length as longest int portion
     
     max_val_int = int(MAX_VAL)                      # find int val of MAX_VAL
-    max_val_bin = str(bin(max_val_int))             # convert to binary string
-    max_val_bin = max_val_bin[2:]                   # strip off "0x"
-    max_val_len = len(max_val_bin)                  # determine length of string
+    min_val_int = abs(int(MIN_VAL))                 # find int val of MIN_VAL
     
-    while len(bin_rep) < max_val_len:               # pad front with 0
+    val_int = max_val_int if min_val_int < max_val_int else min_val_int
+    
+    val_bin = str(bin(val_int))                     # convert to binary string
+    val_bin = val_bin[2:]                           # strip off "0x"
+    val_len = len(val_bin)                          # determine length of string
+    
+    while len(bin_rep) < val_len:                   # pad front with 0
         bin_rep = "0" + bin_rep
     
     # convert decimal portion to binary
@@ -239,55 +248,9 @@ def float_to_bin(n, precision):
         
         if decimal >= 1:                            # subtract if decimal >= 1
             decimal -= 1
-            
-    bin_rep = to_std_not(bin_rep, sign)
+                
+    bin_rep = str(sign) + bin_rep
 
-    return bin_rep
-
-def to_std_not(bin_rep, sign):
-    """ to_std_not - converts a binary string to base-2 standard notation
-    
-    bin_rep - binary string
-    sign - sign of bin_rep
-         - 0 is non-negative, 1 is negative
-    """
-    
-    # determine number of places to move decimal
-    
-    d_loc = bin_rep.find(".")                       # get index of decimal
-    i_loc = bin_rep.find("1")                       # get index of first 1
-    
-    diff = d_loc - i_loc - 1
-    if d_loc < i_loc:
-        diff = d_loc - i_loc
-    
-    # determine exponent
-    
-    exp = diff + 127
-    exp = str(bin(exp))                             # convert int to binary string
-    bin_rep_exp = exp[2:]                           # strip off "0x"
-    
-    while len(bin_rep_exp) < 8:                     # pad front with 0's
-        bin_rep_exp = "0" + bin_rep_exp
-    
-    # remove leading 1 and decimal point
-    
-    whole, decimal = bin_rep.split(".")             # split into whole and decimal strings
-    
-    if i_loc < d_loc:                               # leading 1 before decimal
-        bin_rep_mant = whole[i_loc + 1:] + decimal
-    else:                                           # leading 1 after decimal
-        bin_rep_mant = bin_rep[i_loc + 1:]
-    
-    # determine mantissa
-    
-    while len(bin_rep_mant) < 23:                   # pad end with 0's
-        bin_rep_mant += "0"
-    
-    # store in bits as sign, exp, mantissa
-    
-    bin_rep = str(sign) + bin_rep_exp + bin_rep_mant
-    
     return bin_rep
 
 def bin_to_float(bin_rep):
@@ -304,21 +267,23 @@ def bin_to_float(bin_rep):
         
     # determine sign, exp, mantissa bits
     
-    s = bin_rep[0]
-    c = bin_rep[1:9]
-    m = bin_rep[9:]
+    sign = int(bin_rep[0])
     
-    # convert bits to base 10
+    # split string into whole number and decimal strings
     
-    s = int(s)
+    whole, decimal = bin_rep.split(".")
+    whole = whole[1:]
     
-    c = to_float(c, True)
+    # calculate float equivalent from binary whole & binary decimal portion
     
-    m = to_float(m, False)
+    whole = to_float(whole, is_Whole=True)    
+    decimal = to_float(decimal, is_Whole=False)
         
     # calculate value
     
-    val = (-1)**s * 2**(c - 127) * (1 + m)
+    val = whole + decimal    
+    if sign == 1:
+        val *= -1
     
     return val
 
@@ -390,8 +355,8 @@ def genetic_algorithm():
         n_top = int(top_percent*POPULATION_SIZE)
         
         for i in range(POPULATION_SIZE - n_elite):
-            parent1 = random.choice(population[:n_top])
-            parent2 = random.choice(population[:n_top])
+            parent1 = np.random.choice(population[:n_top])
+            parent2 = np.random.choice(population[:n_top])
             child = parent1.mate(parent2)
             new_generation.append(child)
             

@@ -14,8 +14,8 @@ import math
 
 POPULATION_SIZE = 100
 
-MAX_VAL = 0                                        # function dependent min and max val
-MIN_VAL = 2
+MAX_VAL = 15                                        # function dependent min and max val
+MIN_VAL = 0
 
 PRECISION = 10
 
@@ -26,11 +26,11 @@ def f(x):
     x - x value
     """
     
-    #return (x - 10)**3 - 1
+    return (x - 10)**3 - 1
     #return (x - 10)**3 - math.cos(x) - 1
     #return (x - 10)**3 - math.cos(x) + 4*x
     #return (x - 10)**3 - math.cos(x) + math.sin(x)
-    return x**2 - 1
+    #return x**2 - 1
 
 class Individual(object):    
     def __init__(self, chromosome):
