@@ -22,10 +22,11 @@ def f(x):
     x - x value
     """
     
-    return (x - 10)**3 - 1
+    #return (x - 10)**3 - 1
     #return (x - 10)**3 - np.cos(x) - 1
     #return (x - 10)**3 - np.cos(x) + 4*x
-    #return (x - 10)**3 - np.cos(x) + np.sin(x)
+    return (x - 10)**3 - np.cos(x) + np.sin(x)
+    #return (x + 2)**3 - np.cos(x) + np.sin(x) + 0.5
     #return x**2 - 1
 
 class Individual(object):    
@@ -312,7 +313,7 @@ def to_float(bin_rep, is_Whole):
         
     return val
 
-def genetic_algorithm():
+def genetic_algorithm(printIndiv = False):
     global POPULATION_SIZE
     
     # initial population
@@ -325,13 +326,17 @@ def genetic_algorithm():
     # perform genetic algorithm until convergence
         
     curr_gen = 1                                    # current generation    
-    epsilon = 2e-3
+    epsilon = 1e-3
     converge = False    
     while not converge:
+        if curr_gen > 6000:
+            return -1
+        
         # sort population on fitness score in ascending order
         
         population = sorted(population, key=lambda x : x.fitness)
-        print_individual(population[0], curr_gen)
+        if printIndiv:
+            print_individual(population[0], curr_gen)
         
         # algorithm converges if lowest fitness is less than epsilon
         
@@ -370,18 +375,32 @@ def genetic_algorithm():
     return curr_gen
 
 def main():
-    N_runs = 1
+    N_runs = 1000
+    printIndiv = False
     
     # statistical quantities
     
-    gen = genetic_algorithm()
+    num_errors = 0
+    j = 0
+    
+    gen = genetic_algorithm(printIndiv)
+    while gen == -1:
+        num_errors += 1
+        gen = genetic_algorithm(printIndiv)
     
     tot_gen = gen
     min_gen = gen
     max_gen = gen
     
     for i in range(1, N_runs):
-        gen = genetic_algorithm()
+        print(i, end=" ")
+        j += 1 
+        
+        gen = genetic_algorithm(printIndiv)
+        if gen == -1:
+            num_errors += 1 
+            i -= 1
+            continue
         
         tot_gen += gen
         
@@ -392,11 +411,14 @@ def main():
     
     avg_gen = tot_gen/N_runs
     
-    print(f"Number of Runs:  {N_runs}")
+    print(f"\nNumber of Runs:  {N_runs}")
     print(f"Total Number of Generations:  {tot_gen}")
     print(f"Average Number of Generations:  {avg_gen:.3F}")
     print(f"Minimum Number of Generations:  {min_gen}")
     print(f"Maximum Number of Generations:  {max_gen}")
+    
+    print(f"\nj = {j}")
+    print(f"Number of Errors:  {num_errors}")
 
 if __name__ == "__main__": 
     main()
